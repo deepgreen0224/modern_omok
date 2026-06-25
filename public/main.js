@@ -19,7 +19,9 @@ const roomParam = urlParams.get('room');
 if (roomParam) {
     roomId = roomParam;
     statusMsg.innerText = "방에 입장하는 중...";
-    socket.emit('joinRoom', roomId);
+    socket.on('connect', () => {
+        socket.emit('joinRoom', roomId);
+    });
 }
 
 createBtn.addEventListener('click', () => {
