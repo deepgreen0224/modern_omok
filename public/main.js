@@ -2,7 +2,9 @@ const socket = io();
 let myColor = null;
 let currentTurn = 'black';
 let roomId = null;
-let gameActive = true; // 게임 진행 중인지 여부
+let gameActive = true;
+let isHost = false;
+let keepAliveInterval = null;
 
 const lobby = document.getElementById('lobby');
 const gameArea = document.getElementById('game-area');
@@ -20,18 +22,22 @@ socket.on('connect_error', (err) => {
     statusMsg.innerText = "서버 연결 실패: " + err.message;
 });
 
-if (roomParam) {
-    roomId = roomParam;
-    statusMsg.innerText = "서버에 연결하는 중...";
-    if (socket.connected) {
+socket.on('connect', () => {
+    if (roomParam && !isHost) {
+        roomId = roomParam;
+        statusMsg.innerText = "방에 입장하는 중...";
         socket.emit('joinRoom', roomId);
-    } else {
-        socket.on('connect', () => {
-            statusMsg.innerText = "방에 입장하는 중...";
-            socket.emit('joinRoom', roomId);
-        });
     }
-}
+    if (isHost && roomId) {
+        statusMsg.innerText = "재연결됨. 방을 다시 생성하는 중...";
+        socket.emit('createRoom', roomId);
+    }
+});
+
+socket.on('disconnect', () => {
+    if (!gameArea.classList.contains('hidden')) return;
+    statusMsg.innerText = "서버 연결이 끊어졌습니다. 재연결 시도 중...";
+});
 
 createBtn.addEventListener('click', () => {
     socket.emit('createRoom');
@@ -39,11 +45,17 @@ createBtn.addEventListener('click', () => {
 
 socket.on('roomCreated', (id) => {
     roomId = id;
+    isHost = true;
     const inviteUrl = `${window.location.origin}?room=${roomId}`;
     inviteLinkInput.value = inviteUrl;
     linkSection.classList.remove('hidden');
     createBtn.classList.add('hidden');
     statusMsg.innerText = "친구가 링크를 타고 들어올 때까지 대기 중...";
+
+    if (keepAliveInterval) clearInterval(keepAliveInterval);
+    keepAliveInterval = setInterval(() => {
+        socket.emit('keepAlive', roomId);
+    }, 30000);
 });
 
 socket.on('startGame', (data) => {
@@ -51,6 +63,11 @@ socket.on('startGame', (data) => {
     roomId = data.roomId;
     currentTurn = data.turn;
     gameActive = true;
+
+    if (keepAliveInterval) {
+        clearInterval(keepAliveInterval);
+        keepAliveInterval = null;
+    }
 
     lobby.classList.add('hidden');
     gameArea.classList.remove('hidden');
@@ -75,8 +92,8 @@ function createBoard() {
 }
 
 function onCellClick(e) {
-    if (!gameActive || currentTurn !== myColor) return; 
-    
+    if (!gameActive || currentTurn !== myColor) return;
+
     const cell = e.currentTarget;
     if (cell.querySelector('.stone')) return;
 
@@ -86,7 +103,6 @@ function onCellClick(e) {
     socket.emit('placeStone', { roomId, r, c, color: myColor });
 }
 
-// 돌이 놓였다는 신호 처리
 socket.on('stonePlaced', ({ r, c, color }) => {
     const cell = boardEl.querySelector(`[data-row='${r}'][data-col='${c}']`);
     const stone = document.createElement('div');
@@ -94,23 +110,21 @@ socket.on('stonePlaced', ({ r, c, color }) => {
     cell.appendChild(stone);
 });
 
-// 턴이 바뀌었다는 신호 처리
 socket.on('changeTurn', ({ nextTurn }) => {
     currentTurn = nextTurn;
     updateTurnUI();
 });
 
-// 게임 종료 신호 처리 
 socket.on('gameOver', ({ winner }) => {
-    gameActive = false; // 더 이상 돌을 못 놓게 막음
-    
+    gameActive = false;
+
     setTimeout(() => {
         if (winner === myColor) {
             alert('🎉 축하합니다! 당신이 승리했습니다! WIN! 🎉');
         } else {
             alert('💀 아쉽네요! 상대방이 승리했습니다. LOSE! 💀');
         }
-    }, 100); // 돌이 놓이는 그래픽을 보고 팝업이 뜨도록 약간의 시간차를 둠
+    }, 100);
 });
 
 function updateTurnUI() {
@@ -124,5 +138,6 @@ copyBtn.addEventListener('click', () => {
 });
 
 socket.on('errorMsg', (msg) => {
+    statusMsg.innerText = msg;
     alert(msg);
 });

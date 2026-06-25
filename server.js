@@ -45,17 +45,19 @@ function checkWin(board, r, c, stoneType) {
 }
 
 io.on('connection', (socket) => {
-    socket.on('createRoom', () => {
-        const roomId = uuidv4().slice(0, 8);
+    socket.on('createRoom', (existingRoomId) => {
+        const roomId = existingRoomId || uuidv4().slice(0, 8);
         rooms[roomId] = {
             players: [socket.id],
             board: Array(15).fill(null).map(() => Array(15).fill(0)),
             turn: 'black',
-            isGameOver: false // 게임 종료 상태 추가
+            isGameOver: false
         };
         socket.join(roomId);
         socket.emit('roomCreated', roomId);
     });
+
+    socket.on('keepAlive', () => {});
 
     socket.on('joinRoom', (roomId) => {
         const room = rooms[roomId];
