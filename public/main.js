@@ -16,12 +16,21 @@ const boardEl = document.getElementById('board');
 const urlParams = new URLSearchParams(window.location.search);
 const roomParam = urlParams.get('room');
 
+socket.on('connect_error', (err) => {
+    statusMsg.innerText = "서버 연결 실패: " + err.message;
+});
+
 if (roomParam) {
     roomId = roomParam;
-    statusMsg.innerText = "방에 입장하는 중...";
-    socket.on('connect', () => {
+    statusMsg.innerText = "서버에 연결하는 중...";
+    if (socket.connected) {
         socket.emit('joinRoom', roomId);
-    });
+    } else {
+        socket.on('connect', () => {
+            statusMsg.innerText = "방에 입장하는 중...";
+            socket.emit('joinRoom', roomId);
+        });
+    }
 }
 
 createBtn.addEventListener('click', () => {
