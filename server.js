@@ -45,8 +45,11 @@ function checkWin(board, r, c, stoneType) {
 }
 
 io.on('connection', (socket) => {
+    console.log(`[연결] ${socket.id}`);
+
     socket.on('createRoom', (existingRoomId) => {
         const roomId = existingRoomId || uuidv4().slice(0, 8);
+        console.log(`[방생성] roomId=${roomId}, host=${socket.id}`);
         rooms[roomId] = {
             players: [socket.id],
             board: Array(15).fill(null).map(() => Array(15).fill(0)),
@@ -61,6 +64,7 @@ io.on('connection', (socket) => {
 
     socket.on('joinRoom', (roomId) => {
         const room = rooms[roomId];
+        console.log(`[입장시도] roomId=${roomId}, player=${socket.id}, 방존재=${!!room}, 현재방목록=${Object.keys(rooms)}`);
         if (!room) {
             socket.emit('errorMsg', '방이 만료되었습니다. 새 링크를 요청하세요.');
             return;
@@ -72,9 +76,11 @@ io.on('connection', (socket) => {
 
         socket.join(roomId);
         room.players.push(socket.id);
+        console.log(`[입장성공] roomId=${roomId}, players=${room.players}`);
 
         if (room.players.length === 2) {
             const roles = Math.random() > 0.5 ? ['black', 'white'] : ['white', 'black'];
+            console.log(`[게임시작] roomId=${roomId}`);
             io.to(room.players[0]).emit('startGame', { color: roles[0], roomId, turn: 'black' });
             io.to(room.players[1]).emit('startGame', { color: roles[1], roomId, turn: 'black' });
         }
