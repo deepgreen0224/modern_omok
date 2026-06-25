@@ -59,7 +59,14 @@ io.on('connection', (socket) => {
 
     socket.on('joinRoom', (roomId) => {
         const room = rooms[roomId];
-        if (!room || room.players.length >= 2) return;
+        if (!room) {
+            socket.emit('errorMsg', '방이 만료되었습니다. 새 링크를 요청하세요.');
+            return;
+        }
+        if (room.players.length >= 2) {
+            socket.emit('errorMsg', '이미 가득 찬 방입니다.');
+            return;
+        }
 
         socket.join(roomId);
         room.players.push(socket.id);
