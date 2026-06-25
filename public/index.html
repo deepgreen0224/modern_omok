@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모던 실시간 오목</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <h2>오목 (Omok Online)</h2>
+        
+        <div id="lobby">
+            <button id="create-btn">새 게임방 만들기</button>
+            <div id="link-section" class="hidden">
+                <p>친구에게 아래 링크를 보내세요!</p>
+                <input type="text" id="invite-link" readonly>
+                <button id="copy-btn">링크 복사</button>
+            </div>
+            <p id="status-msg">게임을 시작하려면 방을 만들거나 초대 링크로 접속하세요.</p>
+        </div>
+
+        <div id="game-area" class="hidden">
+            <div class="status-board">
+                <div id="my-info">내 돌: <span id="my-color">-</span></div>
+                <div id="turn-info">현재 차례: <span id="current-turn">흑</span></div>
+            </div>
+            <div id="board" class="board"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
